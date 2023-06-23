@@ -71,7 +71,7 @@ public class WormAI : MonoBehaviour
 
         //}
 
-        if (Physics.Raycast(endPosition, Vector3.up, out hitInfo, terrainLayer.value))
+        if (Physics.Raycast(endPosition, Vector3.up, out hitInfo, 20f, terrainLayer.value))
         {
             endPosition = hitInfo.point;
         }
@@ -94,18 +94,27 @@ public class WormAI : MonoBehaviour
 
     void UpdatePathOverground()
     {
-        Vector3 playerPosition = target.position /*+ (playerShip.spaceshipRigidbody.velocity * 3)*/; //commenting out player position predicting
+        Vector3 targetPosition = target.position /*+ (playerShip.spaceshipRigidbody.velocity * 3)*/; //commenting out player position predicting
+
+        float distance = Vector3.Distance(targetPosition, transform.position);
+        if (distance > 20f)
+        {
+            targetPosition = Vector3.Lerp(transform.parent.position, targetPosition, 20f / distance);
+            // for noise
+            targetPosition = targetPosition - Random.insideUnitSphere * 2;
+        }
+
         Vector3 randomRange = Random.insideUnitSphere * 5;
         randomRange.y = 0;
         startPosition = pathINT.m_Waypoints[pathINT.m_Waypoints.Length - 1].position;
-        endPosition = playerPosition - randomRange;
+        endPosition = targetPosition + randomRange;
 
         //if (Physics.Raycast(startPosition, Vector3.down, out hitInfo, terrainLayer.value))
         //{
         //    startPosition = hitInfo.point;
         //}
 
-        if (Physics.Raycast(endPosition, Vector3.down, out hitInfo, terrainLayer.value))
+        if (Physics.Raycast(endPosition, Vector3.down, out hitInfo, 20f, terrainLayer.value))
         {
             endPosition = hitInfo.point;
         }
@@ -114,7 +123,17 @@ public class WormAI : MonoBehaviour
 
         pathEXT.m_Waypoints[0].position = startPosition;
         pathEXT.m_Waypoints[1].position = startPosition + (rot * Vector3.forward * offset);
-        pathEXT.m_Waypoints[2].position = playerPosition + (Vector3.up * OvergroundArcShape.y);
+
+        Vector3 arcPeak = targetPosition + (Vector3.up * OvergroundArcShape.y);
+
+        if (Physics.Raycast(arcPeak, Vector3.down, out hitInfo, 5f, terrainLayer.value))
+        {
+            arcPeak = endPosition + (Vector3.up * 5f);
+            endPosition = arcPeak + randomRange;
+            endPosition.y = hitInfo.point.y;
+        }
+
+        pathEXT.m_Waypoints[2].position = arcPeak;
         pathEXT.m_Waypoints[3].position = endPosition + (Vector3.down * OvergroundArcShape.z);
 
         //pathEXT.m_Waypoints[3].position = startPosition + newEnd/*(Vector3.down * OvergroundArcShape.z)*/;
